@@ -1,0 +1,9 @@
+flowchart TD
+    A[用户上传图片(base64)] --> B[POST /imgupload]
+    B --> C[调用 GPT-4o-mini 分析图片]
+    C --> D[生成图片描述 Prompt]
+    D --> E{选择模型}
+    E --> F[Flux 直接生成图片]
+    E --> G[Midjourney 提交任务 + 轮询 + 放大]
+    F --> H[返回图片URL]
+    G --> H

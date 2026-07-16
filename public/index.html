@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 图片风格化生成器</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      padding: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1rem;
+    }
+
+    .upload-section {
+      border: 2px dashed #ddd;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: pointer;
+      margin-bottom: 25px;
+    }
+
+    .upload-section:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+
+    .upload-section.dragover {
+      border-color: #667eea;
+      background: #f8f9ff;
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .upload-text {
+      color: #888;
+      font-size: 16px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .preview-section {
+      display: none;
+      margin-bottom: 25px;
+    }
+
+    .preview-section.show {
+      display: block;
+    }
+
+    .preview-title {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .preview-container {
+      display: flex;
+      justify-content: center;
+    }
+
+    #previewImage {
+      max-width: 300px;
+      max-height: 300px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .options-section {
+      margin-bottom: 25px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .option-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .option-group label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .option-group select,
+    .option-group input[type="text"] {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    .option-group select:focus,
+    .option-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    @media (max-width: 600px) {
+      .options-section {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .generate-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 25px;
+    }
+
+    .generate-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .generate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .generate-btn.loading {
+      background: #ccc;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .log-section {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 25px;
+    }
+
+    .log-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .log-item {
+      font-size: 12px;
+      color: #555;
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .result-section {
+      display: none;
+      margin-top: 25px;
+    }
+
+    .result-section.show {
+      display: block;
+    }
+
+    .result-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .result-item {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .result-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .result-item a {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .result-item:hover a {
+      opacity: 1;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      color: #888;
+      font-size: 13px;
+    }
+
+    .style-card {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fafafa;
+    }
+
+    .style-name {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .style-desc {
+      color: #666;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 AI 图片风格化生成器</h1>
+    <p class="subtitle">上传一张照片，AI 自动为你生成不同风格的艺术作品</p>
+
+    <!-- 文件上传区域 -->
+    <div class="upload-section" id="uploadSection">
+      <div class="upload-icon">🖼️</div>
+      <p class="upload-text">点击或拖拽图片到这里上传</p>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <!-- 原图预览 -->
+    <div class="preview-section" id="previewSection">
+      <p class="preview-title">📷 原图</p>
+      <div class="preview-container">
+        <img id="previewImage" alt="预览">
+      </div>
+    </div>
+
+    <!-- 选项配置 -->
+    <div class="options-section">
+      <div class="option-group">
+        <label for="styleSelect">选择风格</label>
+        <select id="styleSelect">
+          <option value="BubbleMattStyle">泡泡玛特风格 (Bubble Matt)</option>
+          <option value="CartoonStyle">迪士尼卡通风格 (Cartoon Disney)</option>
+          <option value="CyberpunkStyle">赛博朋克风格 (Cyberpunk)</option>
+        </select>
+        <div style="margin-top: 8px;" id="styleInfo" class="style-card">
+          <div class="style-name">泡泡玛特风格</div>
+          <div class="style-desc">3D Pixar IP 盲盒风格，柔和色彩，C4D 渲染</div>
+        </div>
+      </div>
+      <div class="option-group">
+        <label for="modelSelect">选择 AI 模型</label>
+        <select id="modelSelect">
+          <option value="flux">Flux (速度快)</option>
+          <option value="midjourney">Midjourney (质量高，需要第三方 API)</option>
+        </select>
+        <div style="margin-top: 8px;" id="modelInfo" class="style-card">
+          <div class="style-name">Flux</div>
+          <div class="style-desc">基于 OpenAI 兼容接口，响应较快</div>
+        </div>
+      </div>
+      <div class="option-group" style="grid-column: 1 / -1;">
+        <label for="customPrompt">自定义提示词（可选）</label>
+        <input type="text" id="customPrompt" placeholder="例如：添加蓝色背景，戴墨镜，风格更夸张...">
+      </div>
+    </div>
+
+    <!-- 生成按钮 -->
+    <button class="generate-btn" id="generateBtn" onclick="generateImage()">
+      开始生成 🚀
+    </button>
+
+    <!-- 日志区域 -->
+    <div class="log-section">
+      <div class="log-title">🪵 处理日志</div>
+      <div id="logContainer"></div>
+    </div>
+
+    <!-- 结果展示 -->
+    <div class="result-section" id="resultSection">
+      <p class="result-title">✨ 生成结果</p>
+      <div class="result-grid" id="resultGrid"></div>
+    </div>
+
+    <div class="footer">
+      Powered by Node.js + OpenAI + Flux/Midjourney
+    </div>
+  </div>
+
+  <script>
+    // DOM 元素
+    const uploadSection = document.getElementById('uploadSection');
+    const fileInput = document.getElementById('fileInput');
+    const previewSection = document.getElementById('previewSection');
+    const previewImage = document.getElementById('previewImage');
+    const generateBtn = document.getElementById('generateBtn');
+    const logContainer = document.getElementById('logContainer');
+    const resultSection = document.getElementById('resultSection');
+    const resultGrid = document.getElementById('resultGrid');
+    const styleSelect = document.getElementById('styleSelect');
+    const modelSelect = document.getElementById('modelSelect');
+    const styleInfo = document.getElementById('styleInfo');
+    const modelInfo = document.getElementById('modelInfo');
+
+    // 存储当前选中的图片
+    let currentImageBase64 = null;
+
+    // 风格描述
+    const styleDescriptions = {
+      'BubbleMattStyle': { name: '泡泡玛特风格', desc: '3D Pixar IP 盲盒风格，柔和色彩，C4D 渲染' },
+      'CartoonStyle': { name: '迪士尼卡通风格', desc: '迪士尼电影感，戏剧化光影，经典卡通人物重绘' },
+      'CyberpunkStyle': { name: '赛博朋克风格', desc: '机械构造，霓虹灯，夜晚场景，高对比度超写实' }
+    };
+
+    const modelDescriptions = {
+      'flux': { name: 'Flux', desc: '基于 OpenAI 兼容接口，响应较快' },
+      'midjourney': { name: 'Midjourney', desc: '第三方中转服务，生成质量较高' }
+    };
+
+    // 风格选择变化时更新描述
+    styleSelect.addEventListener('change', () => {
+      const val = styleSelect.value;
+      styleInfo.innerHTML = `
+        <div class="style-name">${styleDescriptions[val].name}</div>
+        <div class="style-desc">${styleDescriptions[val].desc}</div>
+      `;
+    });
+
+    modelSelect.addEventListener('change', () => {
+      const val = modelSelect.value;
+      modelInfo.innerHTML = `
+        <div class="style-name">${modelDescriptions[val].name}</div>
+        <div class="style-desc">${modelDescriptions[val].desc}</div>
+      `;
+    });
+
+    // 点击上传区域触发文件选择
+    uploadSection.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // 拖拽上传
+    uploadSection.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadSection.classList.add('dragover');
+    });
+
+    uploadSection.addEventListener('dragleave', () => {
+      uploadSection.classList.remove('dragover');
+    });
+
+    uploadSection.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadSection.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        handleFile(file);
+      }
+    });
+
+    // 文件选择变化
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        handleFile(file);
+      }
+    });
+
+    // 处理上传的文件：转为 Base64 并预览
+    function handleFile(file) {
+      addLog(`收到图片: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        // reader.result 格式是 data:image/jpeg;base64,xxxx
+        const fullBase64 = e.target.result;
+        // 提取后面的 Base64 部分
+        const base64 = fullBase64.split(',')[1];
+        currentImageBase64 = base64;
+
+        // 显示预览
+        previewImage.src = fullBase64;
+        previewSection.classList.add('show');
+        addLog('✅ 图片加载完成');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // 添加日志
+    function addLog(message) {
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logContainer.appendChild(item);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    // 清空日志
+    function clearLogs() {
+      logContainer.innerHTML = '';
+    }
+
+    // 生成图片
+    async function generateImage() {
+      if (!currentImageBase64) {
+        alert('请先上传一张图片！');
+        return;
+      }
+
+      const style = styleSelect.value;
+      const model = modelSelect.value;
+      const prompt = document.getElementById('customPrompt').value;
+
+      // 清空旧日志和结果
+      clearLogs();
+      resultSection.classList.remove('show');
+      resultGrid.innerHTML = '';
+
+      // 设置按钮状态为加载中
+      generateBtn.disabled = true;
+      generateBtn.innerHTML = '<span class="loading-spinner"></span>生成中...';
+
+      try {
+        addLog('🚀 开始生成图片...');
+        addLog(`📝 参数: 风格=${styleDescriptions[style].name}, 模型=${modelDescriptions[model].name}`);
+        if (prompt) {
+          addLog(`💬 自定义提示词: ${prompt}`);
+        }
+
+        // 发送请求到后端 API
+        const response = await fetch('/imgupload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imagebase64: currentImageBase64,
+            uploadtype: style,
+            modeltype: model,
+            prompt: prompt,
+          }),
+        });
+
+        const data = await response.json();
+        addLog(`📥 收到响应: ${data.success ? '成功' : '失败 - ' + data.message}`);
+
+        if (!data.success) {
+          throw new Error(data.message || '生成失败');
+        }
+
+        const urls = data.data.urls || data.data.state === 'success' && data.data.urls;
+
+        if (!urls || urls.length === 0) {
+          throw new Error('没有生成任何图片，请检查 API 配置');
+        }
+
+        addLog(`✅ 生成完成，共 ${urls.length} 张图片`);
+
+        // 展示结果
+        urls.forEach((url) => {
+          const item = document.createElement('div');
+          item.className = 'result-item';
+          item.innerHTML = `
+            <img src="${url}" alt="生成结果" loading="lazy">
+            <a href="${url}" target="_blank">点击查看原图</a>
+          `;
+          resultGrid.appendChild(item);
+        });
+
+        resultSection.classList.add('show');
+      } catch (error) {
+        addLog(`❌ 错误: ${error.message}`);
+        alert(`生成失败: ${error.message}`);
+      } finally {
+        // 恢复按钮状态
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '开始生成 🚀';
+      }
+    }
+  </script>
+</body>
+</html>
