@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Art Studio | AI 艺术工作室</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* CSS变量定义 */
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --accent: #f093fb;
+            --success: #10b981;
+            --error: #ef4444;
+
+            --bg-primary: #0a0a0f;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+
+            --shadow-glow: 0 0 40px rgba(102, 126, 234, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 动态背景 */
+        .background-system {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.4;
+            animation: orbFloat 25s ease-in-out infinite;
+        }
+
+        .orb-1 { width: 700px; height: 700px; background: var(--gradient-1); top: -250px; left: -250px; }
+        .orb-2 { width: 600px; height: 600px; background: var(--gradient-2); bottom: -200px; right: -200px; animation-delay: -12s; }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(60px, -40px) scale(1.1); }
+        }
+
+        /* 主容器 */
+        .app-container {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        /* 头部 */
+        .header { text-align: center; margin-bottom: 80px; }
+
+        .logo-wrapper {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 28px;
+            background: var(--gradient-1);
+            border-radius: 32px;
+            box-shadow: var(--shadow-glow);
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 18px;
+        }
+
+        /* 玻璃卡片 */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            transition: all 0.4s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 32px rgba(102, 126, 234, 0.15);
+        }
+
+        /* 工作区布局 */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 440px;
+            gap: 32px;
+        }
+
+        @media (max-width: 1280px) {
+            .workspace { grid-template-columns: 1fr; }
+        }
+
+        /* 上传区域 */
+        .upload-zone {
+            border: 2px dashed var(--glass-border);
+            border-radius: 16px;
+            padding: 80px 48px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.5s ease;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.03), rgba(118, 75, 162, 0.03));
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary);
+            transform: scale(1.01);
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* 风格选择器 */
+        .style-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.35s ease;
+            margin-bottom: 14px;
+        }
+
+        .style-option.active {
+            background: rgba(102, 126, 234, 0.12);
+            border-color: var(--primary);
+            box-shadow: 0 0 24px rgba(102, 126, 234, 0.15);
+        }
+
+        /* 生成按钮 */
+        .generate-button {
+            width: 100%;
+            padding: 20px;
+            background: var(--gradient-1);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            box-shadow: 0 8px 28px rgba(102, 126, 234, 0.45);
+            margin-top: 20px;
+        }
+
+        .generate-button:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 36px rgba(102, 126, 234, 0.55);
+        }
+
+        /* 进度条 */
+        .progress-bar-fill {
+            height: 8px;
+            background: var(--gradient-1);
+            border-radius: 4px;
+            transition: width 0.6s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* 结果画廊 */
+        .gallery-item {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            transition: all 0.5s ease;
+            aspect-ratio: 1;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-12px) scale(1.03);
+            box-shadow: 0 16px 48px rgba(240, 147, 251, 0.25);
+        }
+
+        .gallery-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.7s ease;
+        }
+
+        .gallery-item:hover .gallery-image {
+            transform: scale(1.1);
+        }
+
+        /* 动画关键帧 */
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.08) rotate(5deg); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .workspace { gap: 24px; }
+            .upload-zone { padding: 52px 28px; }
+        }
+    </style>
+</head>
+
+<body>
+<!-- 背景 -->
+<div class="background-system">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+</div>
+
+<main class="app-container">
+    <header class="header">
+        <div class="logo-wrapper">🎨</div>
+        <h1>AI Art Studio</h1>
+        <p style="color: var(--text-secondary);">上传照片，AI为你创造独特艺术风格</p>
+    </header>
+
+    <div class="workspace">
+        <!-- 左侧 -->
+        <section class="glass-card" style="padding: 48px;">
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                <h3>🖼️ 点击或拖拽图片到此处</h3>
+                <p style="color: var(--text-secondary); margin-top: 10px;">开始你的AI艺术创作之旅</p>
+                <input type="file" id="fileInput" accept="image/*" style="display:none;">
+            </div>
+
+            <div id="previewSection" style="display:none; margin-top: 32px;">
+                <img id="previewImage" style="width: 100%; border-radius: 16px;" alt="预览">
+            </div>
+
+            <div id="resultsArea" style="display:none; margin-top: 64px;">
+                <h2 style="font-size: 2rem; margin-bottom: 24px;">✨ 创作成果</h2>
+                <div class="gallery" id="gallery" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 28px;"></div>
+            </div>
+        </section>
+
+        <!-- 右侧控制面板 -->
+        <aside class="glass-card" style="padding: 36px; position: sticky; top: 24px;">
+            <h3 style="margin-bottom: 24px;">⚙️ 创作设置</h3>
+
+            <!-- 风格 -->
+            <label style="display:block; margin-bottom: 12px; font-size: 0.88rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px;">艺术风格</label>
+
+            <div class="style-option active" onclick="selectStyle(this, 'BubbleMattStyle')">
+                <strong>泡泡玛特风格</strong> <span style="background:var(--gradient-1); padding:4px 12px; border-radius:20px; font-size:0.75rem; float:right;">热门</span>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;">3D Pixar IP 盲盒风格</p>
+            </div>
+
+            <div class="style-option" onclick="selectStyle(this, 'CartoonStyle')">
+                <strong>迪士尼卡通</strong> <span style="background:var(--gradient-2); padding:4px 12px; border-radius:20px; font-size:0.75rem; float:right;">经典</span>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;">迪士尼电影感</p>
+            </div>
+
+            <div class="style-option" onclick="selectStyle(this, 'CyberpunkStyle')">
+                <strong>赛博朋克</strong> <span style="background:#f59e0b; padding:4px 12px; border-radius:20px; font-size:0.75rem; float:right;">酷炫</span>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;">霓虹灯未来科技感</p>
+            </div>
+
+            <!-- 模型 -->
+            <label style="display:block; margin: 24px 0 12px; font-size: 0.88rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px;">AI 引擎</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div class="style-option active" onclick="selectModel(this, 'flux')" style="text-align:center; padding:22px 16px;">
+                    ⚡<br><strong>Flux</strong><br><small style="color:var(--success);">速度快</small>
+                </div>
+                <div class="style-option" onclick="selectModel(this, 'midjourney')" style="text-align:center; padding:22px 16px;">
+                    🎨<br><strong>Midjourney</strong><br><small style="color:var(--success);">质量高</small>
+                </div>
+            </div>
+
+            <!-- 提示词 -->
+            <input type="text" id="customPrompt" placeholder="自定义提示词（可选）"
+                   style="width:100%; margin-top:24px; padding:18px; background:rgba(255,255,255,0.05);
+                      border:2px solid var(--glass-border); border-radius:12px; color:white; outline:none;">
+
+            <!-- 按钮 -->
+            <button class="generate-button" onclick="startGeneration()">开始创作 ✨</button>
+
+            <!-- 进度 -->
+            <div id="progressArea" style="display:none; margin-top:24px;">
+                <div style="height:8px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; margin-bottom:12px;">
+                    <div class="progress-bar-fill" id="progressBar" style="width:0%;"></div>
+                </div>
+                <p id="progressText" style="text-align:center; color:var(--text-secondary); font-size:0.93rm;">准备中...</p>
+            </div>
+        </aside>
+    </div>
+</main>
+
+<script>
+    let currentImage = null;
+    let selectedStyle = 'BubbleMattStyle';
+    let selectedModel = 'flux';
+
+    // 文件处理
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            currentImage = event.target.result.split(',')[1];
+            document.getElementById('previewImage').src = event.target.result;
+            document.getElementById('previewSection').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // 选择器
+    function selectStyle(el, style) {
+        document.querySelectorAll('.style-option').forEach(o => o.classList.remove('active'));
+        el.classList.add('active');
+        selectedStyle = style;
+    }
+
+    function selectModel(el, model) {
+        el.parentElement.querySelectorAll('div').forEach(o => o.classList.remove('active'));
+        el.classList.add('active');
+        selectedModel = model;
+    }
+
+    // 生成
+    async function startGeneration() {
+        if (!currentImage) {
+            alert('请先上传图片！');
+            return;
+        }
+
+        const btn = document.querySelector('.generate-button');
+        btn.disabled = true;
+        btn.innerHTML = '<div style="display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;"></div>创作中...';
+
+        const progressArea = document.getElementById('progressArea');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        progressArea.style.display = 'block';
+
+        try {
+            progressBar.style.width = '30%';
+            progressText.textContent = '正在分析图片...';
+
+            const response = await fetch('/imgupload', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    imagebase64: currentImage,
+                    uploadtype: selectedStyle,
+                    modeltype: selectedModel,
+                    prompt: document.getElementById('customPrompt').value
+                })
+            });
+
+            progressBar.style.width = '70%';
+            progressText.textContent = 'AI正在创作...';
+
+            const result = await response.json();
+
+            if (!result.success) throw new Error(result.message);
+
+            progressBar.style.width = '100%';
+            progressText.textContent = '完成！';
+
+            const urls = result.data.urls || [];
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+
+            urls.forEach(url => {
+                gallery.innerHTML += `
+            <div class="gallery-item">
+              <img src="${url}" class="gallery-image" loading="lazy">
+            </div>`;
+            });
+
+            document.getElementById('resultsArea').style.display = 'block';
+
+        } catch(err) {
+            alert('生成失败: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '开始创作 ✨';
+            setTimeout(() => progressArea.style.display = 'none', 2000);
+        }
+    }
+
+    // CSS动画注入
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin { to{transform:rotate(360deg)} }
+    `;
+    document.head.appendChild(style);
+</script>
+</body>
+</html>
